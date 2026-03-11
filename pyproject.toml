@@ -127,3 +127,6 @@ shell = "uv run pytest dev/tests -vv"
 shell = "uv run pytest dev/tests/managers -vv"
 [tool.poe.tasks.test-integrations]
 shell = "uv run pytest dev/tests/integrations -vv"
+[tool.poe.tasks.test-db]
+shell = "uv run pytest dev/tests/dv -vv"
+
