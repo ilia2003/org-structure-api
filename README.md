@@ -262,9 +262,13 @@ Integration tests
 
 poe test-integrations
 
+db tests
+
+poe test-db
+
 Example output
 
-10 passed in 0.28s
+50 passed in 0.36s
 Linting & Formatting
 
 Run linter
