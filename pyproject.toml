@@ -115,14 +115,15 @@ sequence = [
     { ref = "prod" },
 ]
 
-[tool.poe.tasks.test]
-shell = "uv run pytest -q"
-
-[tool.poe.tasks.test-verbose]
-shell = "uv run pytest -vv"
-
 [tool.poe.tasks.db-create]
 cmd = "python -c 'from dev.init_database import main_create; main_create()'"
 
 [tool.poe.tasks.db-drop]
 cmd = "python -c 'from dev.init_database import main_drop; main_drop()'"
+
+[tool.poe.tasks.test]
+shell = "uv run pytest dev/tests -vv"
+[tool.poe.tasks.test-managers]
+shell = "uv run pytest dev/tests/managers -vv"
+[tool.poe.tasks.test-integrations]
+shell = "uv run pytest dev/tests/integrations -vv"
