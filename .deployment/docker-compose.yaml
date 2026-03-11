@@ -1,32 +1,59 @@
 name: org-structure-api
 
+networks:
+  org-structure-api-network:
+    name: org-structure-api-network
+
+x-logging: &formatted-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+    max-size: "10m"
+    max-file: "3"
+    mode: "non-blocking"
+    max-buffer-size: "4m"
+
+x-app-envs: &app-envs
+  APP_DEBUG: ${APP_DEBUG:-true}
+  APP_HOST: ${APP_HOST:-0.0.0.0}
+  APP_PORT: ${APP_PORT:-8000}
+  APP_RELEASE: ${APP_RELEASE:-0.1.0}
+
+x-postgres-envs: &postgres-envs
+  POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-org_password}
+  POSTGRES_DB: ${POSTGRES_DB:-org_structure}
+
 services:
-  app:
+  org-structure-api:
     container_name: org-structure-api
     image: org-structure-api
+    restart: always
+    logging: *formatted-logging
+    networks: [org-structure-api-network]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/api/v1/shared/healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     build:
       context: ..
       dockerfile: .deployment/Dockerfile
-    restart: always
-    depends_on:
-      - postgres
     environment:
-      APP_DEBUG: ${APP_DEBUG:-true}
-      APP_HOST: ${APP_HOST:-0.0.0.0}
-      APP_PORT: ${APP_PORT:-8000}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-org_password}
-      POSTGRES_DB: ${POSTGRES_DB:-org_structure}
+      <<: [*app-envs, *postgres-envs]
     ports:
       - "8000:8000"
-    command: ["poe", "start-prod"]
+    entrypoint: ["poe", "start-prod"]
+    depends_on:
+      - postgres
 
   postgres:
     container_name: org-structure-api-postgres
     image: postgres:16
     restart: always
+    networks: [org-structure-api-network]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-org_password}

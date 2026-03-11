@@ -1,5 +1,3 @@
-from app.schemas.base import BaseModel
-
 from .departments import (
     DepartmentCreateSchema,
     DepartmentSchema,
@@ -7,6 +5,7 @@ from .departments import (
     DepartmentUpdateSchema,
 )
 from .employees import EmployeeCreateSchema, EmployeeSchema
+from .health import GetHealthcheckResponse
 
 
 __all__ = [
@@ -16,5 +15,5 @@ __all__ = [
     "DepartmentTreeSchema",
     "EmployeeSchema",
     "EmployeeCreateSchema",
-    "BaseModel"
+    "GetHealthcheckResponse",
 ]
