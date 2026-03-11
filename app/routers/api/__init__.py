@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.routers.api.departments import router as department_router
+from app.routers.api.health import router as health_router
 
 
 __all__ = ["api_router"]
