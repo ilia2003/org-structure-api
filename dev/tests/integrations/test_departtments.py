@@ -6,7 +6,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
-from app.dependencies.exceptions import ConflictException, RequestedDataNotFoundException
+from app.dependencies.exceptions import BadRequestException, ConflictException, RequestedDataNotFoundException
 from app.managers import Managers
 from app.schemas.departments import DepartmentSchema, DepartmentTreeSchema
 from app.schemas.employees import EmployeeSchema
@@ -17,6 +17,8 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestDepartmentsApiSuccess:
+    """✅ Success cases."""
+
     @staticmethod
     async def test_create_department(api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch) -> None:
         department = seeded_db["child_department"]
@@ -60,31 +62,142 @@ class TestDepartmentsApiSuccess:
         assert data["children"][0]["department"]["id"] == str(child.id)
         assert len(data["children"][0]["employees"]) == expected_employee_count
 
+    @staticmethod
+    async def test_delete_department_no_content(
+        api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
+    ) -> None:
+        department = seeded_db["child_department"]
+        monkeypatch.setattr(Managers.departments, "delete_department", AsyncMock(return_value=None))
+
+        resp = await api_client.delete(f"/api/v1/departments/{department.id}?mode=cascade")
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT, resp.text
+        assert resp.text == ""
+
 
 class TestDepartmentsApiErrors:
-    @staticmethod
-    async def test_get_department_not_found(api_client: AsyncClient, monkeypatch) -> None:
-        monkeypatch.setattr(
-            Managers.departments,
-            "get_department",
-            AsyncMock(side_effect=RequestedDataNotFoundException("Department not found")),
+    """❌ Error cases."""
+
+    class TestNotFound:
+        """404-like errors: RequestedDataNotFoundException"""
+
+        @staticmethod
+        async def test_get_department_not_found(api_client: AsyncClient, monkeypatch) -> None:
+            monkeypatch.setattr(
+                Managers.departments,
+                "get_department",
+                AsyncMock(side_effect=RequestedDataNotFoundException("Department not found")),
+            )
+
+            resp = await api_client.get(f"/api/v1/departments/{uuid.uuid4()}")
+            assert_http_error(resp, status.HTTP_404_NOT_FOUND, "Department not found")
+
+        @staticmethod
+        async def test_delete_department_target_not_found(
+            api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
+        ) -> None:
+            department = seeded_db["child_department"]
+            monkeypatch.setattr(
+                Managers.departments,
+                "delete_department",
+                AsyncMock(side_effect=RequestedDataNotFoundException("Target department not found")),
+            )
+
+            resp = await api_client.delete(
+                f"/api/v1/departments/{department.id}?mode=reassign&reassign_to_department_id={uuid.uuid4()}"
+            )
+            assert_http_error(resp, status.HTTP_404_NOT_FOUND, "Target department not found")
+
+    class TestConflict:
+        """409-like errors: ConflictException"""
+
+        @staticmethod
+        async def test_create_department_duplicate(api_client: AsyncClient, monkeypatch) -> None:
+            monkeypatch.setattr(
+                Managers.departments,
+                "create_department",
+                AsyncMock(side_effect=ConflictException("Department with this name already exists")),
+            )
+
+            resp = await api_client.post("/api/v1/departments", json={"name": "Engineering"})
+            assert_http_error(resp, status.HTTP_409_CONFLICT, "Department with this name already exists")
+
+        @staticmethod
+        async def test_update_department_conflict(
+            api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
+        ) -> None:
+            department = seeded_db["child_department"]
+            monkeypatch.setattr(
+                Managers.departments,
+                "update_department",
+                AsyncMock(side_effect=ConflictException("Department cannot be parent of itself")),
+            )
+
+            resp = await api_client.patch(
+                f"/api/v1/departments/{department.id}",
+                json={"parent_id": str(department.id)},
+            )
+            assert_http_error(resp, status.HTTP_409_CONFLICT, "Department cannot be parent of itself")
+
+    class TestBadRequest:
+        """400-like errors: BadRequestException"""
+
+        @staticmethod
+        async def test_delete_department_bad_mode(
+            api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
+        ) -> None:
+            department = seeded_db["child_department"]
+            monkeypatch.setattr(
+                Managers.departments,
+                "delete_department",
+                AsyncMock(side_effect=BadRequestException("Unsupported delete mode")),
+            )
+
+            resp = await api_client.delete(f"/api/v1/departments/{department.id}?mode=cascade")
+            assert_http_error(resp, status.HTTP_400_BAD_REQUEST, "Unsupported delete mode")
+
+    class TestValidation:
+        """🧪 Validation errors."""
+
+        @staticmethod
+        @pytest.mark.parametrize(
+            "payload",
+            [
+                {},
+                {"name": 123},
+                {"name": "x" * 201},
+            ],
         )
+        async def test_create_department_invalid_payload(
+            api_client: AsyncClient,
+            payload: dict[str, Any],
+        ) -> None:
+            resp = await api_client.post("/api/v1/departments", json=payload)
+            assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, resp.text
 
-        resp = await api_client.get(f"/api/v1/departments/{uuid.uuid4()}")
-        assert_http_error(resp, status.HTTP_404_NOT_FOUND, "Department not found")
-
-    @staticmethod
-    async def test_create_department_duplicate(api_client: AsyncClient, monkeypatch) -> None:
-        monkeypatch.setattr(
-            Managers.departments,
-            "create_department",
-            AsyncMock(side_effect=ConflictException("Department with this name already exists")),
+        @staticmethod
+        @pytest.mark.parametrize(
+            "payload",
+            [
+                {"name": "x" * 201},
+                {"parent_id": "not-uuid"},
+            ],
         )
+        async def test_update_department_invalid_payload(
+            api_client: AsyncClient,
+            seeded_db: dict[str, Any],
+            payload: dict[str, Any],
+        ) -> None:
+            department = seeded_db["child_department"]
 
-        resp = await api_client.post("/api/v1/departments", json={"name": "Engineering"})
-        assert_http_error(resp, status.HTTP_409_CONFLICT, "Department with this name already exists")
+            resp = await api_client.patch(f"/api/v1/departments/{department.id}", json=payload)
+            assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, resp.text
 
-    @staticmethod
-    async def test_create_department_invalid_payload(api_client: AsyncClient) -> None:
-        resp = await api_client.post("/api/v1/departments", json={})
-        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, resp.text
+        @staticmethod
+        async def test_delete_department_invalid_mode_pattern(
+            api_client: AsyncClient,
+            seeded_db: dict[str, Any],
+        ) -> None:
+            department = seeded_db["child_department"]
+            resp = await api_client.delete(f"/api/v1/departments/{department.id}?mode=hard-delete")
+            assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, resp.text
