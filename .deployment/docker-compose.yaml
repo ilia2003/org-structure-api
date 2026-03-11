@@ -1,0 +1,40 @@
+name: org-structure-api
+
+services:
+  app:
+    container_name: org-structure-api
+    image: org-structure-api
+    build:
+      context: ..
+      dockerfile: .deployment/Dockerfile
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_HOST: ${APP_HOST:-0.0.0.0}
+      APP_PORT: ${APP_PORT:-8000}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-org_password}
+      POSTGRES_DB: ${POSTGRES_DB:-org_structure}
+    ports:
+      - "8000:8000"
+    command: ["poe", "start-prod"]
+
+  postgres:
+    container_name: org-structure-api-postgres
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-org_password}
+      POSTGRES_DB: ${POSTGRES_DB:-org_structure}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
