@@ -36,17 +36,26 @@ target-version = "py313"
 line-length = 120
 
 [tool.ruff.lint]
+# ignore = ["E501", "PLR0911", "PLR0912", "PLR0915", "PLR0913", "PLW2901"]
 ignore = [
-    "PLR0913",
-    "PLW2901",
+    "PLR0913",  # too many positional arguments for method call
+    "PLW2901",  # overwritten argument in 'for' loop
+    "FAST001",  # FastAPI rule that warns when `response_model` duplicates return type hints.
+    "FAST002",  # FastAPI rule that warns when `response_model` duplicates return type hints.
+    "B008",     # warns about calling functions like `Query()` in default arguments.
 ]
 select = [
+    # flake8-bugbear
     "B",
+    # pycodestyle
     "E",
     "W",
     "FAST",
+    # pylint
     "PL",
+    # pyflakes
     "F",
+    # isort
     "I",
 ]
 
@@ -106,8 +115,18 @@ sequence = [
     { ref = "prod" },
 ]
 
-[tool.poe.tasks.test]
-shell = "uv run pytest -q"
+[tool.poe.tasks.db-create]
+cmd = "python -c 'from dev.init_database import main_create; main_create()'"
 
-[tool.poe.tasks.test-verbose]
-shell = "uv run pytest -vv"
+[tool.poe.tasks.db-drop]
+cmd = "python -c 'from dev.init_database import main_drop; main_drop()'"
+
+[tool.poe.tasks.test]
+shell = "uv run pytest dev/tests -vv"
+[tool.poe.tasks.test-managers]
+shell = "uv run pytest dev/tests/managers -vv"
+[tool.poe.tasks.test-integrations]
+shell = "uv run pytest dev/tests/integrations -vv"
+[tool.poe.tasks.test-db]
+shell = "uv run pytest dev/tests/dv -vv"
+
