@@ -1,7 +1,7 @@
-from .departments import DepartmentManager
-from .employees import EmployeeManager
+from app.managers.departments import DepartmentManager
+from app.managers.employees import EmployeeManager
 
-__all__ = [
-    "DepartmentManager",
-    "EmployeeManager",
-]
+
+class Managers:
+    departments: DepartmentManager = DepartmentManager()
+    employees: EmployeeManager = EmployeeManager()

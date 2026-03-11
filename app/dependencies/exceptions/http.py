@@ -1,5 +1,12 @@
-from fastapi import HTTPException, status
+from typing import Annotated
 
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.services.postgresql import get_session
+
+
+SessionDepends = Annotated[AsyncSession, Depends(get_session)]
 
 class RequestedDataNotFoundException(HTTPException):
     """404 — данные не найдены"""

@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.schemas.base import UUIDModel
 from app.schemas.mixins import CreateUpdateAt, StripTextFieldsMixin
@@ -18,7 +18,7 @@ class EmployeeSchema(UUIDModel, CreateUpdateAt, StripTextFieldsMixin):
     hired_at: date | None = None
 
 
-class EmployeeCreateSchema(BaseModel, StripTextFieldsMixin):
+class EmployeeCreateSchema(StripTextFieldsMixin):
     """
     Схема создания сотрудника(POST).
     """

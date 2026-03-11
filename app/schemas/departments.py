@@ -18,7 +18,7 @@ class DepartmentSchema(UUIDModel, CreateUpdateAt, StripTextFieldsMixin):
     parent_id: UUID | None = Field(default=None)
 
 
-class DepartmentCreateSchema(BaseModel, StripTextFieldsMixin):
+class DepartmentCreateSchema(StripTextFieldsMixin):
     """
     Схема создания подразделения (POST).
     """
@@ -27,7 +27,7 @@ class DepartmentCreateSchema(BaseModel, StripTextFieldsMixin):
     parent_id: UUID | None = Field(default=None)
 
 
-class DepartmentUpdateSchema(BaseModel, StripTextFieldsMixin):
+class DepartmentUpdateSchema(StripTextFieldsMixin):
     """
     Схема частичного обновления подразделения (PATCH).
     """
@@ -45,4 +45,14 @@ class DepartmentFullSchema(DepartmentSchema, StripTextFieldsMixin):
     children: list["DepartmentFullSchema"] = Field(default_factory=list)
 
 
-DepartmentFullSchema.model_rebuild()
+class DepartmentTreeSchema(BaseModel):
+    """
+    Схема получения подразделения с сотрудниками и дочерними подразделениями.
+    """
+
+    department: DepartmentSchema
+    employees: list[EmployeeSchema] = Field(default_factory=list)
+    children: list["DepartmentTreeSchema"] = Field(default_factory=list)
+
+
+DepartmentTreeSchema.model_rebuild()

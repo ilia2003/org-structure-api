@@ -2,8 +2,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.crud.departments import DepartmentCRUD
-from app.dependencies.exceptions import RequestedDataNotFoundException, BadRequestException, ConflictException
+from app.db.crud import DepartmentCRUD, EmployeeCRUD
+from app.dependencies.exceptions import BadRequestException, ConflictException, RequestedDataNotFoundException
 from app.managers.utils import build_department_tree, check_no_cycle, check_target_not_in_subtree
 from app.schemas.departments import (
     DepartmentCreateSchema,
@@ -111,7 +111,6 @@ class DepartmentManager:
         mode: str,
         reassign_to_department_id: UUID | None = None,
     ) -> None:
-        from app.db.crud.employees import EmployeeCRUD
 
         departments_db = DepartmentCRUD(session)
         employees_db = EmployeeCRUD(session)
