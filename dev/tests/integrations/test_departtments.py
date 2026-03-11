@@ -63,7 +63,7 @@ class TestDepartmentsApiSuccess:
         assert len(data["children"][0]["employees"]) == expected_employee_count
 
     @staticmethod
-    async def test_delete_department_no_content(
+    async def test_delete_department(
         api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
     ) -> None:
         department = seeded_db["child_department"]
@@ -93,7 +93,7 @@ class TestDepartmentsApiErrors:
             assert_http_error(resp, status.HTTP_404_NOT_FOUND, "Department not found")
 
         @staticmethod
-        async def test_delete_department_target_not_found(
+        async def test_delete_department_not_found(
             api_client: AsyncClient, seeded_db: dict[str, Any], monkeypatch
         ) -> None:
             department = seeded_db["child_department"]
@@ -165,6 +165,8 @@ class TestDepartmentsApiErrors:
             [
                 {},
                 {"name": 123},
+                {"name": ""},
+                {"name": "   "},
                 {"name": "x" * 201},
             ],
         )

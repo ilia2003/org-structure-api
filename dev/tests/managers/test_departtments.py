@@ -85,7 +85,7 @@ class TestDepartmentsSuccess:
         session.commit.assert_awaited_once()
 
     @staticmethod
-    async def test_delete_department_reassign_success(monkeypatch) -> None:
+    async def test_delete_department(monkeypatch) -> None:
         session = AsyncMock(spec=AsyncSession)
         source_department = DepartmentFactory(name="Legacy")
         target_department = DepartmentFactory(name="Core")
@@ -162,7 +162,7 @@ class TestDepartmentsErrors:
                 )
 
         @staticmethod
-        async def test_delete_department_target_not_found(monkeypatch) -> None:
+        async def test_delete_department_not_found(monkeypatch) -> None:
             session = AsyncMock(spec=AsyncSession)
             source_department = DepartmentFactory()
 
